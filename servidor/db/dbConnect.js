@@ -1,6 +1,6 @@
 import { MongoClient } from "mongodb";
 
-const cliente = new MongoClient("mongodb+srv://thalesquadros2:MongoAdmin00**@mongodatabase.pnpj2k6.mongodb.net/?retryWrites=true&w=majority");
+const cliente = new MongoClient(process.env.CONNECTION_STRING_DB);
 
 let documentosColecao;
 let usuariosColecao;
