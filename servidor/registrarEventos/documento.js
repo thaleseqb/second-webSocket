@@ -3,7 +3,7 @@ import {
     encontrarDocumento,
     excluirDocumento,
   } from "../db/documentosDb.js";
-import { adicionarConexao, obterUsuarioDocumento } from "../utils/conexoesDocumentos.js";
+import { adicionarConexao, obterUsuarioDocumento, removerConexao } from "../utils/conexoesDocumentos.js";
 
 
 function registrarEventoDocument(socket, io) {
@@ -39,7 +39,10 @@ function registrarEventoDocument(socket, io) {
         });
 
         socket.on("disconnect", () => {
-          console.log(`cliente ${socket.id} foi desconectado`)
+          removerConexao(nomeDocumento, nomeUsuario)
+          const usuariosNoDocumento = obterUsuarioDocumento(nomeDocumento);
+
+          io.to(nomeDocumento).emit("usuarios_no_documento", usuariosNoDocumento);
         })
       }
     );
