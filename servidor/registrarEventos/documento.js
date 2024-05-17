@@ -3,7 +3,7 @@ import {
     encontrarDocumento,
     excluirDocumento,
   } from "../db/documentosDb.js";
-import { adicionarConexao, obterUsuarioDocumento, removerConexao } from "../utils/conexoesDocumentos.js";
+import { EncontrarConexao, adicionarConexao, obterUsuarioDocumento, removerConexao } from "../utils/conexoesDocumentos.js";
 
 
 function registrarEventoDocument(socket, io) {
@@ -12,14 +12,25 @@ function registrarEventoDocument(socket, io) {
       const documento = await encontrarDocumento(nomeDocumento);
       
       if (documento) {
-          socket.join(nomeDocumento);
-          
-          adicionarConexao({nomeDocumento, nomeUsuario});
-          const usuariosNoDocumento = obterUsuarioDocumento(nomeDocumento);
+          const conexaoEncontrada = EncontrarConexao(nomeDocumento, nomeUsuario);
 
-          io.to(nomeDocumento).emit("usuarios_no_documento", usuariosNoDocumento);
+          if (!conexaoEncontrada) {
+            socket.join(nomeDocumento);
+            
+            adicionarConexao({nomeDocumento, nomeUsuario});
 
-          devolverTexto(documento.texto);
+            socket.data = {
+              usuarioEntrou: true,
+            }
+
+            const usuariosNoDocumento = obterUsuarioDocumento(nomeDocumento);
+  
+            io.to(nomeDocumento).emit("usuarios_no_documento", usuariosNoDocumento);
+  
+            devolverTexto(documento.texto);
+          } else {
+            socket.emit("usuario_ja_encontrado")
+          }
         }
 
         socket.on("texto_editor", async ({ texto, nomeDocumento }) => {
@@ -39,10 +50,13 @@ function registrarEventoDocument(socket, io) {
         });
 
         socket.on("disconnect", () => {
-          removerConexao(nomeDocumento, nomeUsuario)
-          const usuariosNoDocumento = obterUsuarioDocumento(nomeDocumento);
 
-          io.to(nomeDocumento).emit("usuarios_no_documento", usuariosNoDocumento);
+          if (socket.data.usuarioEntrou) {
+            removerConexao(nomeDocumento, nomeUsuario)
+            const usuariosNoDocumento = obterUsuarioDocumento(nomeDocumento);
+  
+            io.to(nomeDocumento).emit("usuarios_no_documento", usuariosNoDocumento);
+          }
         })
       }
     );
